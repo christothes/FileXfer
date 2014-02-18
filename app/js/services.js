@@ -182,8 +182,6 @@ angular.module('myApp.services', []).
       var req = new XMLHttpRequest();
       req.open(operation, url, true);
       req.setRequestHeader('x-ms-date',  new Date().toGMTString().replace('UTC', 'GMT'));
-//        req.setRequestHeader('Access-Control-Allow-Origin', '*');
-//        req.setRequestHeader('Authorization', "asdfasdfasdf");
 
       req.onreadystatechange = function() {
         if(req.readyState === 4) {
@@ -200,6 +198,25 @@ angular.module('myApp.services', []).
       req.send();
 
       return def.promise;
+    };
+    function zeroPad(num, numZeros) {
+      var n = Math.abs(num);
+      var zeros = Math.max(0, numZeros - Math.floor(n).toString().length );
+      var zeroString = Math.pow(10,zeros).toString().substr(1);
+      if( num < 0 ) {
+        zeroString = '-' + zeroString;
+      }
+
+      return zeroString+n;
+    };
+    var buildBlockListBody = function(count) {
+      var i = count;
+      var body = '<?xml version="1.0" encoding="utf-8"?><BlockList>';
+      for(;i > 0; i-= 1){
+        body = body +'<Latest>' + zeroPad(i, 4) +'</Latest>';
+      }
+      body = body +'</BlockList>'
+      return body;
     }
     return {
       setDevStorage: function(isDev) { devStorage = isDev},
@@ -230,10 +247,30 @@ angular.module('myApp.services', []).
       },
       getBlobProperties: function(server) {
         var url = server + (devStorage ? 'devstoreaccount1?comp=list' : '');
-        return doCall('HEAD', url);
+        //return doCall('HEAD', url);
+
+        return $http.get(url, {
+          headers: {
+            'x-ms-date': new Date().toGMTString().replace('UTC', 'GMT')}
+        });
       },
-      putFileInBlob: function(server) {
-        return doCall('PUT', server);
+      putFileInBlob: function(server, data) {
+        var url = server + '&comp=block&blockid=0001';
+        return $http.put(url, data, {
+          headers: {
+            'x-ms-date': new Date().toGMTString().replace('UTC', 'GMT'),
+            'sas': server
+          }
+        });
+      },
+      commitBlocks: function(server, blockCount) {
+        var url = server + '&comp=blocklist';
+        var data = buildBlockListBody(blockCount);
+        return $http.put(url, data, {
+          headers: {
+            'x-ms-date': new Date().toGMTString().replace('UTC', 'GMT')
+          }
+        });
       }
     }
   })
