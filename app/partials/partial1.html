@@ -1,0 +1,27 @@
+<input type="file" id="files" multiple/>
+        <br/>
+<div id="drop_zone">*or* Drop files here</div>
+        <br/>
+<div class="row">
+    <table id="filesTable" class="table">
+        <tbody>
+        <tr ng-repeat="file in fileList">
+            <td>
+                <b>Name: </b> {{file.name}}
+            </td>
+            <td>
+                <b>Size: </b> {{file.size}}
+            </td>
+            <td>
+                <b>Last Modified: </b> {{file.lastModifiedDate}}
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<br/>
+<button id="getContainers" ng-click="ShowContainers()">Get Blob Properties</button>
+<button id="putFile" ng-click="PutFileInBlob()">Upload File</button>
+
+
