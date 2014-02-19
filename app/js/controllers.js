@@ -43,6 +43,13 @@ angular.module('myApp.controllers', []).
         })
     }
 
+    $scope.DownloadFileOnServer = function() {
+      FileXfer.downloadFile()
+        .then(function(result) {
+          console.log('finished download request');
+        })
+    }
+
     function captureFiles(files) {
       for (var i = 0, f; f = files[i]; i++) {
         console.log(f);
@@ -71,39 +78,85 @@ angular.module('myApp.controllers', []).
             alert('An error occurred reading this file.');
         };
       };
-      reader.onprogress = function(evt) {
-        // evt is an ProgressEvent.
-        if (evt.lengthComputable) {
-          var percentLoaded = Math.round((evt.loaded / evt.total) * 100);
-          // Increase the progress bar length.
-          if (percentLoaded < 100) {
-            $scope.fileProgress =  percentLoaded + '%';
-            $scope.$apply();
-          }
-        }
-      };
+
       reader.onload = function(e) {
         // Ensure that the progress bar displays 100% at the end.
-        $scope.fileProgress = '100%';
-        $scope.$apply();
-
-        FileXfer.getSASToken()
-          .then(function(result) {
-            return FileXfer.putFileInBlob(result.data.url, e.target.result)    ;
-          })
+        console.log('reader.onload');
+//        var start = readFileBlobChunks.startByte;
+//        var end = Math.min(readFileBlobChunks.blobSize - 1, (readFileBlobChunks.startByte + readFileBlobChunks.chunkSize - 1));
+//        FileXfer.putFileInPageBlob(readFileBlobChunks.sasURL,
+//            e.target.result,
+//            start + '-' + end)
+//          .then(function(result) {
+//            console.log('returned from putFileInBlob');
+//            console.log(result);
+//            var isDone = readFileBlobChunks(e.target);
+//          });
+        FileXfer.putFileInBlob(readFileBlobChunks.sasURL,
+            e.target.result,
+            readFileBlobChunks.blobCount)
           .then(function(result) {
             console.log('returned from putFileInBlob');
             console.log(result);
-            return FileXfer.commitBlocks(result.config.headers.sas, 1);
-        })
-          .then(function(result) {
-            console.log('returned from commitBlocks');
-            console.log(result);
-          })
+            FileXfer.commitBlocks(readFileBlobChunks.sasURL, readFileBlobChunks.blobCount)
+              .then(function(result){
+                console.log('completed block commit');
+              });
+            readFileBlobChunks(e.target);
+
+          }, function(err) {
+            console.log(err);
+          }, function(update){
+            $scope.fileProgress = update.progress;
+          });
       }
 
-      reader.readAsBinaryString(evt.target.files[0]);
+      var file = evt.target.files[0];
+      FileXfer.getSASToken(file.size)
+        .then(function(result) {
+          var sasURL = result.data.url;
+          var blobSize = result.data.blobSize;
+          readFileBlobChunks.sasURL = sasURL;
+          readFileBlobChunks.blobSize = blobSize;
+          readFileBlobChunks(reader, file, 2048000);
+        });
     };
+
+    function readFileBlobChunks(reader, file, chunkSize) {
+      if(file){
+        var calPageAlignedRage = function(value) {
+          return value + (512- (value % 512)) - 1
+        }
+        //init
+        readFileBlobChunks.isDone = false;
+        readFileBlobChunks.file = file;
+        if(chunkSize) {
+          readFileBlobChunks.chunkSize = chunkSize;
+        } else{
+          readFileBlobChunks.chunkSize = 2048000;
+        }
+        readFileBlobChunks.startByte = 0;
+        //readFileBlobChunks.endByte = Math.min(readFileBlobChunks.startByte + readFileBlobChunks.chunkSize, readFileBlobChunks.file.size);
+        readFileBlobChunks.blobCount = 0;
+      }
+      //if this is a continuation (readyState:2 indicates Done from previous read) increment the counters
+      if(reader.readyState === 2) {
+        readFileBlobChunks.startByte += readFileBlobChunks.chunkSize;
+        //readFileBlobChunks.endByte = Math.min(readFileBlobChunks.startByte + readFileBlobChunks.chunkSize, readFileBlobChunks.file.size);
+      }
+      if(readFileBlobChunks.startByte < readFileBlobChunks.file.size){
+        readFileBlobChunks.blobCount += 1;
+        console.log('reading blob ' + readFileBlobChunks.blobCount + ' byte range: ' + readFileBlobChunks.startByte + ' - ' + (readFileBlobChunks.startByte + readFileBlobChunks.chunkSize - 1));
+        //var blob = readFileBlobChunks.file.slice(readFileBlobChunks.startByte, readFileBlobChunks.endByte);
+        var blob = readFileBlobChunks.file.slice(readFileBlobChunks.startByte, readFileBlobChunks.startByte + readFileBlobChunks.chunkSize);
+        reader.readAsArrayBuffer(blob);
+      } else {
+        readFileBlobChunks.isDone = true;
+        console.log('read all blobs');
+      }
+      return readFileBlobChunks.isDone;
+    }
+
 
     function handleDragOver(evt) {
       evt.stopPropagation();

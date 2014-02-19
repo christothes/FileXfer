@@ -32,7 +32,8 @@ if ('development' === app.get('env')) {
 }
 
 app.get('/', routes.index);
-app.get('/getSAS', routes.getSAS);
+app.get('/getSAS/*', routes.getSAS);
+app.get('/dlfile', routes.getBlob);
 app.get('/js/*', routes.js);
 app.get('/lib/*', routes.lib);
 app.get('/css/*', routes.css);

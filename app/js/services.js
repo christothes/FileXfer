@@ -177,28 +177,54 @@ angular.module('myApp.services', []).
   })
   .factory("FileXfer", function($http, $q) {
     var devStorage = false;
-    var doCall = function(operation, url) {
-      var def = $q.defer();
-      var req = new XMLHttpRequest();
-      req.open(operation, url, true);
-      req.setRequestHeader('x-ms-date',  new Date().toGMTString().replace('UTC', 'GMT'));
-
-      req.onreadystatechange = function() {
-        if(req.readyState === 4) {
-          if(req.status === 200){
-            def.resolve({responseText: req.responseText, responseHeaders: req.getAllResponseHeaders()});
-          } else {
-            def.reject(req.responseText)
+    var XHR = {
+      setHeaders: function(req, config) {
+        //req.setRequestHeader('x-ms-date',  new Date().toGMTString().replace('UTC', 'GMT'));
+        req.setRequestHeader('x-ms-version', '2013-08-15');
+        if(config && config.headers) {
+          for (var h in config.headers) {
+            req.setRequestHeader(h, config.headers[h]);
           }
-
-        } else {
-          def.notify(req.readyState);
         }
-      }
-      req.send();
+      },
+      setCommonEvents: function(req, def, config) {
+        req.onreadystatechange = function() {
+          if(req.readyState === 4) {
+            if(req.status === 200 || req.status === 201){
+              def.resolve({responseText: req.responseText, responseHeaders: req.getAllResponseHeaders(), config: config});
+            } else {
+              def.reject(req.responseText)
+            }
+          }
+        }
+      },
+      get: function(url, config) {
+        var def = $q.defer();
+        var req = new XMLHttpRequest();
+        req.open('GET', url, true);
+        this.setHeaders(req, config);
+        this.setCommonEvents(req, def, config);
+        req.send();
+        return def.promise;
+      },
+      put: function(url, data, config) {
+        var def = $q.defer();
+        var req = new XMLHttpRequest();
+        req.open('PUT', url, true);
+        req.setRequestHeader('x-ms-date',  new Date().toGMTString().replace('UTC', 'GMT'));
+        this.setHeaders(req, config);
+        this.setCommonEvents(req, def, config);
+        req.upload.onprogress = function(evt) {
+          if (evt.lengthComputable) {
+            var percent = 100 * evt.loaded / evt.total;
+            def.notify({progress: percent});
+          }
+        }
 
-      return def.promise;
-    };
+        req.send(data);
+        return def.promise;
+      }
+    }
     function zeroPad(num, numZeros) {
       var n = Math.abs(num);
       var zeros = Math.max(0, numZeros - Math.floor(n).toString().length );
@@ -210,9 +236,9 @@ angular.module('myApp.services', []).
       return zeroString+n;
     };
     var buildBlockListBody = function(count) {
-      var i = count;
+      var i = 1;
       var body = '<?xml version="1.0" encoding="utf-8"?><BlockList>';
-      for(;i > 0; i-= 1){
+      for(;i <= count; i+= 1){
         body = body +'<Latest>' + zeroPad(i, 4) +'</Latest>';
       }
       body = body +'</BlockList>'
@@ -220,8 +246,11 @@ angular.module('myApp.services', []).
     }
     return {
       setDevStorage: function(isDev) { devStorage = isDev},
-      getSASToken: function() {
-        return $http.get('/getsas');
+      getSASToken: function(blobSize) {
+        return $http.get('/getsas/' + blobSize);
+      },
+      downloadFile: function() {
+        return $http.get('/dlfile');
       },
       getContainers: function(server) {
         var url = server + (devStorage ? 'devstoreaccount1?comp=list' : '&comp=list' /*+ '&include=metadata' */);
@@ -248,29 +277,48 @@ angular.module('myApp.services', []).
       getBlobProperties: function(server) {
         var url = server + (devStorage ? 'devstoreaccount1?comp=list' : '');
         //return doCall('HEAD', url);
-
-        return $http.get(url, {
+        return XHR.get(url, {
           headers: {
             'x-ms-date': new Date().toGMTString().replace('UTC', 'GMT')}
         });
+
+//        return $http.get(url, {
+//          headers: {
+//            'x-ms-date': new Date().toGMTString().replace('UTC', 'GMT')}
+//        });
       },
-      putFileInBlob: function(server, data) {
-        var url = server + '&comp=block&blockid=0001';
-        return $http.put(url, data, {
+      putFileInBlob: function(server, data, blockId) {
+        var url = server + '&comp=block&blockid=' + zeroPad(blockId, 4);
+        return XHR.put(url, data, {
           headers: {
             'x-ms-date': new Date().toGMTString().replace('UTC', 'GMT'),
             'sas': server
           }
         });
       },
+      putFileInPageBlob: function(server, data, range) {
+        var url = server + '&comp=page';
+        return XHR.put(url, data, {
+          headers: {
+            'x-ms-range': 'bytes=' + range,
+            'x-ms-page-write': 'update'
+          }
+        });
+      },
       commitBlocks: function(server, blockCount) {
+        console.log('commitBlocks. BlockCount= ' + blockCount);
         var url = server + '&comp=blocklist';
         var data = buildBlockListBody(blockCount);
-        return $http.put(url, data, {
+        return XHR.put(url, data, {
           headers: {
             'x-ms-date': new Date().toGMTString().replace('UTC', 'GMT')
           }
         });
+//        return $http.put(url, data, {
+//          headers: {
+//            'x-ms-date': new Date().toGMTString().replace('UTC', 'GMT')
+//          }
+//        });
       }
     }
   })
