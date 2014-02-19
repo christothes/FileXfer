@@ -177,6 +177,8 @@ angular.module('myApp.services', []).
   })
   .factory("FileXfer", function($http, $q) {
     var devStorage = false;
+    var sessions = {};
+
     var XHR = {
       setHeaders: function(req, config) {
         //req.setRequestHeader('x-ms-date',  new Date().toGMTString().replace('UTC', 'GMT'));
@@ -211,16 +213,36 @@ angular.module('myApp.services', []).
         var def = $q.defer();
         var req = new XMLHttpRequest();
         req.open('PUT', url, true);
-        req.setRequestHeader('x-ms-date',  new Date().toGMTString().replace('UTC', 'GMT'));
+        req.setRequestHeader('x-ms-date', new Date().toGMTString().replace('UTC', 'GMT'));
         this.setHeaders(req, config);
         this.setCommonEvents(req, def, config);
         req.upload.onprogress = function(evt) {
           if (evt.lengthComputable) {
-            var percent = 100 * evt.loaded / evt.total;
-            def.notify({progress: percent});
+            var session = sessions[config.headers.sas];
+            if(session){
+              session.bytesTransferred += evt.loaded - session.previousBytes;
+              var totalLoaded = session.bytesTransferred;
+              if(evt.loaded === evt.total) {
+                session.previousBytes = 0;
+                session.totalKbPerSec = Math.floor((totalLoaded / 1024) / ((Date.now() - session.startTime) / 1000));
+              } else{
+                session.previousBytes = evt.loaded;
+              }
+              //only calculate when chunk completes
+              var totalSize = session.fileSize;
+              var totalPercent = Math.floor(100 * totalLoaded / totalSize);
+              //var totalKbPerSec = Math.floor((totalLoaded / 1024) / ((Date.now() - session.startTime) / 1000))
+              def.notify({progress: totalPercent, bitRate: session.totalKbPerSec});
+
+              if(totalPercent === 100) {
+                delete sessions[config.headers.sas];
+              }
+            }
+//            var percent = Math.floor(100 * evt.loaded / evt.total);
+//            var kbPerSecond =  Math.floor((evt.loaded / 1024) / ((Date.now() - startTime) / 1000))
+//            def.notify({progress: percent, bitRate: kbPerSecond});
           }
         }
-
         req.send(data);
         return def.promise;
       }
@@ -289,12 +311,19 @@ angular.module('myApp.services', []).
       },
       putFileInBlob: function(server, data, blockId) {
         var url = server + '&comp=block&blockid=' + zeroPad(blockId, 4);
+        if(!sessions[url]){
+
+        }
         return XHR.put(url, data, {
           headers: {
             'x-ms-date': new Date().toGMTString().replace('UTC', 'GMT'),
             'sas': server
           }
         });
+      },
+      createSessionData: function(sasURL, fileSize) {
+        //this is used to track total download progress and speed
+        sessions[sasURL] = {fileSize: fileSize, bytesTransferred: 0, previousBytes: 0, startTime: Date.now()}
       },
       putFileInPageBlob: function(server, data, range) {
         var url = server + '&comp=page';

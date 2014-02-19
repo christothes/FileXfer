@@ -16,7 +16,7 @@
                 <b>Last Modified: </b> {{file.lastModifiedDate}}
             </td>
             <td>
-                <b>Progress: </b>Chunk:{{blobID}} of {{chunkCount}} - {{fileProgress}}%
+                <b>Progress: </b>Chunk:{{blobID}} of {{chunkCount}} - {{fileProgress}}% @{{bitRate}} KB/sec
             </td>
         </tr>
         </tbody>
@@ -25,7 +25,6 @@
 
 <br/>
 <button id="getContainers" ng-click="ShowContainers()">Get Blob Properties</button>
-<button id="putFile" ng-click="PutFileInBlob()">Upload File</button>
 <button id="downloadFile" ng-click="DownloadFileOnServer()">Download File (server)</button>
 
 
