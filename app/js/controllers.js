@@ -15,6 +15,7 @@ angular.module('myApp.controllers', []).
 
     $scope.fileList = [];
     $scope.fileProgress = '0%'
+    $scope.blobID = ''
 
     $scope.filesChanged = function(evt) {
       console.log('ngChange!');
@@ -92,17 +93,25 @@ angular.module('myApp.controllers', []).
 //            console.log(result);
 //            var isDone = readFileBlobChunks(e.target);
 //          });
-        FileXfer.putFileInBlob(readFileBlobChunks.sasURL,
-            e.target.result,
-            readFileBlobChunks.blobCount)
+        var sasUrl = readFileBlobChunks.sasURL;
+        var blobId = readFileBlobChunks.blobCount;
+        var data = e.target.result;
+        $scope.blobID = blobId;
+        //calling here creates lots of paralell copies, but not in order
+        //good use case for Rx probably
+        //readFileBlobChunks(e.target);
+        FileXfer.putFileInBlob(sasUrl,
+            data,
+            blobId)
           .then(function(result) {
             console.log('returned from putFileInBlob');
             console.log(result);
-            FileXfer.commitBlocks(readFileBlobChunks.sasURL, readFileBlobChunks.blobCount)
+            readFileBlobChunks(e.target);
+            FileXfer.commitBlocks(sasUrl, blobId)
               .then(function(result){
                 console.log('completed block commit');
               });
-            readFileBlobChunks(e.target);
+            //readFileBlobChunks(e.target);
 
           }, function(err) {
             console.log(err);
@@ -118,7 +127,7 @@ angular.module('myApp.controllers', []).
           var blobSize = result.data.blobSize;
           readFileBlobChunks.sasURL = sasURL;
           readFileBlobChunks.blobSize = blobSize;
-          readFileBlobChunks(reader, file, 2048000);
+          readFileBlobChunks(reader, file, 4096000);
         });
     };
 
