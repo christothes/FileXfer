@@ -14,8 +14,8 @@ angular.module('myApp.controllers', []).
     }
 
     $scope.fileList = [];
-    $scope.fileProgress = '0%'
-    $scope.blobID = ''
+    $scope.fileProgress = '0%';
+    $scope.blobID = '0';
 
     $scope.filesChanged = function(evt) {
       console.log('ngChange!');
@@ -127,22 +127,22 @@ angular.module('myApp.controllers', []).
           var blobSize = result.data.blobSize;
           readFileBlobChunks.sasURL = sasURL;
           readFileBlobChunks.blobSize = blobSize;
-          readFileBlobChunks(reader, file, 4096000);
+          var chunkSize = 4096000;
+          var diff = file.size % chunkSize
+          $scope.chunkCount = (file.size + (chunkSize - diff)) / chunkSize ;
+          readFileBlobChunks(reader, file, chunkSize);
         });
     };
 
     function readFileBlobChunks(reader, file, chunkSize) {
       if(file){
-        var calPageAlignedRage = function(value) {
-          return value + (512- (value % 512)) - 1
-        }
         //init
         readFileBlobChunks.isDone = false;
         readFileBlobChunks.file = file;
         if(chunkSize) {
           readFileBlobChunks.chunkSize = chunkSize;
         } else{
-          readFileBlobChunks.chunkSize = 2048000;
+          readFileBlobChunks.chunkSize = 4096000;
         }
         readFileBlobChunks.startByte = 0;
         //readFileBlobChunks.endByte = Math.min(readFileBlobChunks.startByte + readFileBlobChunks.chunkSize, readFileBlobChunks.file.size);
