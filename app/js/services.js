@@ -246,8 +246,8 @@ angular.module('myApp.services', []).
     }
     return {
       setDevStorage: function(isDev) { devStorage = isDev},
-      getSASToken: function(blobSize) {
-        return $http.get('/getsas/' + blobSize);
+      getSASToken: function(fileName) {
+        return $http.get('/getsas/' + fileName);
       },
       downloadFile: function() {
         return $http.get('/dlfile');
@@ -305,13 +305,14 @@ angular.module('myApp.services', []).
           }
         });
       },
-      commitBlocks: function(server, blockCount) {
+      commitBlocks: function(server, blockCount, fileName) {
         console.log('commitBlocks. BlockCount= ' + blockCount);
         var url = server + '&comp=blocklist';
         var data = buildBlockListBody(blockCount);
         return XHR.put(url, data, {
           headers: {
-            'x-ms-date': new Date().toGMTString().replace('UTC', 'GMT')
+            'x-ms-date': new Date().toGMTString().replace('UTC', 'GMT'),
+            'x-ms-meta-filename': fileName
           }
         });
 //        return $http.put(url, data, {

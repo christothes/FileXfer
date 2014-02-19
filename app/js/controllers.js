@@ -95,6 +95,7 @@ angular.module('myApp.controllers', []).
 //          });
         var sasUrl = readFileBlobChunks.sasURL;
         var blobId = readFileBlobChunks.blobCount;
+        var fileName = readFileBlobChunks.fileName;
         var data = e.target.result;
         $scope.blobID = blobId;
         //calling here creates lots of paralell copies, but not in order
@@ -107,7 +108,7 @@ angular.module('myApp.controllers', []).
             console.log('returned from putFileInBlob');
             console.log(result);
             readFileBlobChunks(e.target);
-            FileXfer.commitBlocks(sasUrl, blobId)
+            FileXfer.commitBlocks(sasUrl, blobId, fileName)
               .then(function(result){
                 console.log('completed block commit');
               });
@@ -121,12 +122,13 @@ angular.module('myApp.controllers', []).
       }
 
       var file = evt.target.files[0];
-      FileXfer.getSASToken(file.size)
+      FileXfer.getSASToken(file.name)
         .then(function(result) {
           var sasURL = result.data.url;
           var blobSize = result.data.blobSize;
           readFileBlobChunks.sasURL = sasURL;
           readFileBlobChunks.blobSize = blobSize;
+          readFileBlobChunks.fileName = file.name;
           var chunkSize = 4096000;
           var diff = file.size % chunkSize
           $scope.chunkCount = (file.size + (chunkSize - diff)) / chunkSize ;

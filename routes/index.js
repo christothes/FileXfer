@@ -64,7 +64,8 @@ exports.getSAS = function (req, res) {
 
   var blobService = azure.createBlobService('diagpoc', 'ePQIQtVAA2X1dMKeR7Pui0e8iN//RGuCvesFp7JVwEqdbxKrhf9ChNfiB3gBnk37nufPSGXEv+qy6lgTaSOrIQ==')
   var containerName = 'test';
-  var blobName = 'FileBlob';
+  var blobName = guid();
+  //var fileName = req.params.length > 0 ? encodeURIComponent(req.params[0]) : 'FileBlob';
 
 //create a SAS that expires in an hour
   var sharedAccessPolicy = {
@@ -74,16 +75,33 @@ exports.getSAS = function (req, res) {
     }
   };
 
-  //size must be 512 page aligned
-  var fileSize = parseInt(req.params[0],10)
-  var pageAlignedLength = fileSize + (512- (fileSize % 512));
-  console.log('blobSize= ' + pageAlignedLength);
+//  //size must be 512 page aligned
+//  var fileSize = parseInt(req.params[0],10)
+//  var pageAlignedLength = fileSize + (512- (fileSize % 512));
+//  console.log('blobSize= ' + pageAlignedLength);
   blobService.createBlockBlobFromText(containerName, blobName, "init", function(error){
     if(error){
       console.log(error);
       res.json(error);
     }
+//    else {
+//      blobService.setBlobMetadata(containerName, blobName, {'fileName': fileName}, function(error, blob, response){
+//        if(error){
+//          console.log('error creating metaData');
+//          console.log(error);
+//          res.json(error);
+//        }
+//        if(blob) {
+//          console.log(blob);
+//        }
+//        if(response) {
+//          console.log(response);
+//        }
+//      })
+//    }
   });
+
+  console.log('created blobName: ' + blobName);
 //  blobService.createPageBlob(containerName, blobName, pageAlignedLength, function(error){
 //    if(error){
 //      console.log(error);
@@ -94,7 +112,7 @@ exports.getSAS = function (req, res) {
   var sasUrl = blobService.getBlobUrl(containerName, blobName, sharedAccessPolicy);
   blobService.getContain
   console.log(sasUrl);
-  res.json({url: sasUrl, blobSize: pageAlignedLength});
+  res.json({url: sasUrl, blobSize: '0'});
 
 };
 
