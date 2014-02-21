@@ -31,8 +31,6 @@ angular.module('myApp.controllers', []).
               console.log(result);
             })
         })
-      //FileXfer.getContainers('https://diagpoc.blob.core.windows.net:443/test/customerA?se=2014-02-17T05%3A37%3A48Z&sr=b&sv=2012-02-12&sig=mrr5h2v%2BFXA6JyvZD9ZoujO1iSQ7iTj4pnYgQCZofCs%3D');
-      //FileXfer.getContainers('http://localhost:10000/');
     };
 
     $scope.DownloadFileOnServer = function() {
@@ -80,7 +78,7 @@ angular.module('myApp.controllers', []).
         var sasUrl = readFileBlobChunks.sasURL;
         var blobId = readFileBlobChunks.blobCount;
         var fileName = readFileBlobChunks.fileName;
-        var data = readerTarget.result;
+        var data = new Uint8Array(readerTarget.result);
         $scope.blobID = blobId;
         //calling here creates lots of parallel copies, but not in order
         //good use case for Rx probably
