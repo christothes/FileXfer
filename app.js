@@ -30,10 +30,6 @@ app.use(function(req, res, next) {
           data.writeUInt8(chunk[i], i + bytesWritten);
         } catch(e) {
           console.log(e);
-          console.log(len);
-          console.log(i + bytesWritten);
-          console.log(buffLen);
-          console.log(req.headers);
           break;
         }
       }
