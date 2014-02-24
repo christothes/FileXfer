@@ -2,7 +2,8 @@
   "name": "File Transfer POC",
   "description": "chunking and proxying",
   "repository": "https://github.com/christothes/filexfer",
-  "devDependencies": {
+  "main": "app.js",
+  "dependencies": {
     "request": "*",
     "http-proxy": "*",
     "phantomjs" : "~1.9",
