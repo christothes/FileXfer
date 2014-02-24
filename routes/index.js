@@ -8,11 +8,13 @@
 var azure = require('azure');
 var util = require('util');
 var fs = require('fs');
-var httpProxy = require('http-proxy');
+var request = require('request');
+
+//request.defaults({'proxy':'http://127.0.0.1:8888'})
 //
 // Create a proxy server with custom application logic
 //
-var proxy = httpProxy.createProxyServer({});
+//var proxy = httpProxy.createProxyServer({});
 
 var s4 = function() {
   return Math.floor(Math.random() * 0x10000).toString();
@@ -60,10 +62,22 @@ exports.partials = function (req, res) {
 
 exports.proxy = function (req, res) {
   //fixup request
+  var url = req.headers['full-url'];
+  console.log('proxy to: ' + url);
+  var contLen = req.headers['content-length'];
+  //copy relevant headers
+  var headers = {
+    'x-ms-date': req.headers['x-ms-date'],
+    'x-ms-version': req.headers['x-ms-version'],
+    'Content-Length': contLen
+  }
 
-  proxy.web(req, res, {
-    target: 'http://'
-  })
+  if(req.headers['x-ms-meta-filename']){
+    headers['x-ms-meta-filename'] = req.headers['x-ms-meta-filename'];
+  }
+
+  console.log('body length: ' + req.rawBody.length);
+  request.put({url: url, headers: headers, body: req.rawBody}).pipe(res);
 }
 
 exports.getSAS = function (req, res) {

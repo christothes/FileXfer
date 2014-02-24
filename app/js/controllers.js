@@ -17,6 +17,7 @@ angular.module('myApp.controllers', []).
     $scope.fileList = [];
     $scope.fileProgress = '0';
     $scope.blobID = '0';
+    $scope.useProxy = true;
 
     $scope.filesChanged = function(evt) {
       console.log('ngChange!');
@@ -84,12 +85,12 @@ angular.module('myApp.controllers', []).
         //good use case for Rx probably
         //turns out this is not really faster
         //readFileBlobChunks(readerTarget);
-        FileXfer.putFileInBlob(sasUrl, data, blobId)
+        FileXfer.putFileInBlob(sasUrl, data, blobId, $scope.useProxy)
           .then(function(result) {
             console.log('returned from putFileInBlob');
             console.log(result);
             readFileBlobChunks(readerTarget);
-            FileXfer.commitBlocks(sasUrl, blobId, fileName)
+            FileXfer.commitBlocks(sasUrl, blobId, fileName, $scope.useProxy)
               .then(function(result){
                 console.log('completed block commit');
               });

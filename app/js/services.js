@@ -102,14 +102,8 @@ angular.module('myApp.services', []).
       return body;
     }
     return {
-      setDevStorage: function(isDev) { devStorage = isDev},
       getSASToken: function(fileName) {
         return $http.get('/getsas/' + fileName);
-      },
-      getProxyAddress: function(){
-        var def = $q.defer();
-        def.resolve({proxyUrl: 'localhost:3001'});
-        return def.promise;
       },
       downloadFile: function() {
         return $http.get('/dlfile');
@@ -117,20 +111,6 @@ angular.module('myApp.services', []).
       getContainers: function(server) {
         var url = server + (devStorage ? 'devstoreaccount1?comp=list' : '&comp=list' /*+ '&include=metadata' */);
         return doCall(url);
-
-
-//        $.ajax({url: req,
-//          crossDomain: true,
-//          headers: {
-//          'x-ms-date': '123',
-//          'blah': 'ASDFASDF',
-//          'Access-Control-Allow-Origin': '*'}
-//        });
-//        return $http.get(req, {
-//          headers: {
-//            'x-ms-date': '123',
-//            'Access-Control-Allow-Origin': '*'}
-//        });
       },
       getBlobMetaData: function(server) {
         var url = server + (devStorage ? 'devstoreaccount1?comp=list' : '&comp=metadata');
@@ -149,15 +129,16 @@ angular.module('myApp.services', []).
 //            'x-ms-date': new Date().toGMTString().replace('UTC', 'GMT')}
 //        });
       },
-      putFileInBlob: function(server, data, blockId) {
+      putFileInBlob: function(server, data, blockId, useProxy) {
         var url = server + '&comp=block&blockid=' + zeroPad(blockId, 4);
         if(!sessions[url]){
 
         }
-        return XHR.put(url, data, {
+        return XHR.put(useProxy ? '/proxy' : url, data, {
           headers: {
             'x-ms-date': new Date().toGMTString().replace('UTC', 'GMT'),
-            'sas': server
+            'sas': server,
+            'full-url': url
           }
         });
       },
@@ -174,14 +155,15 @@ angular.module('myApp.services', []).
           }
         });
       },
-      commitBlocks: function(server, blockCount, fileName) {
+      commitBlocks: function(server, blockCount, fileName, useProxy) {
         console.log('commitBlocks. BlockCount= ' + blockCount);
         var url = server + '&comp=blocklist';
         var data = buildBlockListBody(blockCount);
-        return XHR.put(url, data, {
+        return XHR.put(useProxy ? '/proxy' : url, data, {
           headers: {
             'x-ms-date': new Date().toGMTString().replace('UTC', 'GMT'),
-            'x-ms-meta-filename': fileName
+            'x-ms-meta-filename': fileName,
+            'full-url': url
           }
         });
 //        return $http.put(url, data, {
